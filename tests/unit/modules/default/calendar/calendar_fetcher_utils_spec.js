@@ -1,5 +1,7 @@
 global.moment = require("moment-timezone");
 
+const ical = require("node-ical");
+const { expect } = require("playwright/test");
 const CalendarFetcherUtils = require("../../../../../modules/default/calendar/calendarfetcherutils");
 
 describe("Calendar fetcher utils test", () => {
@@ -48,6 +50,32 @@ describe("Calendar fetcher utils test", () => {
 			expect(filteredEvents).toHaveLength(2);
 			expect(filteredEvents[0].title).toBe("ongoingEvent");
 			expect(filteredEvents[1].title).toBe("upcomingEvent");
+		});
+
+		it("should return the correct times when recurring events pass through daylight saving time", () => {
+			const data = ical.parseICS(`BEGIN:VEVENT
+DTSTART;TZID=Europe/Amsterdam:20250311T090000
+DTEND;TZID=Europe/Amsterdam:20250311T091500
+RRULE:FREQ=WEEKLY;BYDAY=FR,MO,TH,TU,WE,SA,SU
+DTSTAMP:20250531T091103Z
+ORGANIZER;CN=test:mailto:test@test.com
+UID:67e65a1d-b889-4451-8cab-5518cecb9c66
+CREATED:20230111T114612Z
+DESCRIPTION:Test
+LAST-MODIFIED:20250528T071312Z
+SEQUENCE:1
+STATUS:CONFIRMED
+SUMMARY:Test
+TRANSP:OPAQUE
+END:VEVENT`);
+
+			const filteredEvents = CalendarFetcherUtils.filterEvents(data, defaultConfig);
+
+			const januaryFirst = filteredEvents.filter((event) => moment.unix(event.startDate / 1000).format("MM-DD") === "01-01");
+			console.log(januaryFirst);
+
+			const novemberFirst = filteredEvents.filter((event) => moment.unix(event.startDate / 1000).format("MM-DD") === "07-01");
+			console.log(novemberFirst);
 		});
 	});
 });
